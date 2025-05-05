@@ -1,24 +1,44 @@
-# This is the file for ~/.termux/boot/update_ip.sh
-
 #!/data/data/com.termux/files/usr/bin/bash
 
-SERVICE_URL="https://phoneip-107722137045.asia-south1.run.app/update"
-SECRET="0mBYWlzd2MClFt8FpAoJHO9RlvDmSHrtCATJfcZJ0Pc"
-INTERVAL=300  # seconds between updates
+SERVICE_URL="https://phoneip.your-domain.com/update"
+SECRET="MyPhoneKey123"
+INTERVAL=300
+LOG="$HOME/update_ip.log"
+PIDFILE="$HOME/.update_ip.pid"
 
-push_ip(){
-  IP=$(ip -4 addr show wlan0 2>/dev/null \
-    | awk '/inet /{print $2}' | cut -d/ -f1)
-  [ -z "$IP" ] && return
-  curl -s -X POST "$SERVICE_URL" \
-    -H "Content-Type: application/json" \
-    -d "{\"key\":\"$SECRET\",\"ip\":\"$IP\"}"
+# kill old loop if running
+if [ -f "$PIDFILE" ]; then
+  kill "$(cat "$PIDFILE")" 2>/dev/null && rm -f "$PIDFILE"
+fi
+
+push_ip() {
+  IP=$(ifconfig 2>/dev/null \
+       | grep -A1 '^wlan0:' \
+       | grep -oE 'inet ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)' \
+       | awk '{print $2}')
+  if [ -z "$IP" ]; then
+    echo "$(date) ⚠ no IP found" >> "$LOG"
+    return
+  fi
+  echo "$(date) → posting IP $IP" >> "$LOG"
+  wget -qO- --header="Content-Type: application/json" \
+    --post-data "{\"key\":\"$SECRET\",\"ip\":\"$IP\"}" \
+    "$SERVICE_URL" >> "$LOG" 2>&1
 }
 
-# on boot
+# keep executable
+ochmod +x "$HOME/.termux/boot/update_ip.sh"
+
+# run now
 push_ip
 
-# then every $INTERVAL seconds
-while sleep $INTERVAL; do
-  push_ip
-done &
+# start loop
+(
+  while sleep "$INTERVAL"; do
+    push_ip
+  done
+)&
+
+# record PID & log
+echo $! > "$PIDFILE"
+echo "$(date) ▶ started new loop (PID $!)" >> "$LOG"

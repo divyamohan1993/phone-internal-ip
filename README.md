@@ -58,17 +58,17 @@ def get_ip():
 
 2. **requirements.txt**:
 
-   ```
-   Flask>=2.0
-   requests   # if you ever need it in future
-   gunicorn
-   ```
+```
+Flask>=2.0
+requests   # if you ever need it in future
+gunicorn
+```
 
 3. Add a **Procfile** (no file extension):
 
-   ```
-   web: gunicorn main:app
-   ```
+```
+web: gunicorn main:app
+```
 
 4. In the Cloud Run UI:
    * **Leave** the “Function entry point” blank or set it back to “Use buildpack default.”
@@ -104,9 +104,9 @@ https://<random-id>-<region>.run.app
 
 2. In Termux:
 
-   ```bash
-   pkg install iproute2 curl
-   ```
+```bash
+pkg install iproute2 curl
+```
 
 3. Create `~/.termux/boot/update_ip.sh` with:
 
